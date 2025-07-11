@@ -1,29 +1,6 @@
-"""
-Active Inference from Scratch: T-Maze Problem
-
-This script implements a simple Active Inference agent to solve the T-maze task.
-The goal is to provide a clear, step-by-step guide to the core concepts of
-Active Inference, using only NumPy for numerical operations.
-
-This tutorial is structured into three main parts:
-1.  **The Generative Model (TMaze class):** This is the agent's internal model of the
-    world. It defines how the agent believes states, observations, and actions
-    are related.
-2.  **The Active Inference Agent (ActiveInferenceAgent class):** This contains the
-    core logic for perception and action, driven by the principle of minimizing
-    free energy.
-3.  **The Simulation (run_simulation function):** This runs the experiment and
-    visualizes the agent's learning and performance.
-"""
-
 import numpy as np
 import matplotlib.pyplot as plt
 
-# --- 1. The Generative Model and Environment ---
-# The heart of an Active Inference agent is its "generative model." This is not just
-# a component of the agent; it IS the agent's reality. The agent uses this model
-# to predict and explain its sensations. We define both the environment and the
-# agent's model of it in this class.
 
 class TMaze:
     """
