@@ -31,41 +31,51 @@ class ActiveInferenceAgent:
         kl = self.q_s @ (np.log(self.q_s + 1e-16) - np.log(prior_q + 1e-16))
         self.vfe = kl - evidence
 
-    def act(self, trial_num, depth=2):
-        # Epistemic fade: 2.0 before 200, 1.0 after
-        epistemic_weight = 2.0 if trial_num < 200 else 1.0
-        # Temp decay: 1.0 to 0.1 over 500 trials
-        temp = 1.0 * (1 - trial_num / 500) + 0.1
+    def act(self, trial_num, depth=3, sample_actions=1):  # Increased depth to 3 with full pruning (sample_actions=1)
         def recursive_g(q_current, d):
-            if d == 0: return 0, 0  # Base
-            G = np.zeros(self.model.num_actions)
-            epistemics = np.zeros(self.model.num_actions)
-            pragmatics = np.zeros(self.model.num_actions)
+            if d == 0:
+                return 0, 0  # No future epi/prag
+            G_sub = np.zeros(self.model.num_actions)
             for a in range(self.model.num_actions):
-                q_sp = self.model.B[:, :, a] @ q_current
-                q_op = self.model.A @ q_sp
-                H_q_op = -np.sum(q_op * np.log(q_op + 1e-16))
-                H_p_o_s = -np.sum(self.model.A * np.log(self.model.A + 1e-16), axis=0)
+                q_sp = self.model.B[:, :, a] @ q_current  # Predict next state
+                q_op = self.model.A @ q_sp  # Predict obs
+                # Local epistemic: How much info this action gives immediately
+                H_q_op = -np.sum(q_op * np.log(q_op + 1e-16))  # Overall ambiguity
+                H_p_o_s = -np.sum(self.model.A * np.log(self.model.A + 1e-16), axis=0)  # Per-state ambiguity
                 expected_H = q_sp @ H_p_o_s
                 epistemic = H_q_op - expected_H
+                # Local pragmatic: How close to goals
                 pragmatic = q_sp @ np.log(self.model.goal_prior + 1e-16)
-                future_ep, future_prag = recursive_g(q_sp, d-1)  # Recurse
-                epistemics[a] = epistemic + future_ep
-                pragmatics[a] = pragmatic + future_prag
-                G[a] = - (epistemic * epistemic_weight + pragmatic)
-            return np.mean(epistemics), np.mean(pragmatics)
+                # Recurse for future, add to sub G for pruning
+                future_ep, future_prag = recursive_g(q_sp, d-1)
+                G_sub[a] = - (epistemic + pragmatic + future_ep + future_prag)  # Cumulative negative (min G = max value)
+            # Prune: Select top sample_actions by lowest G_sub (best futures)
+            top_as = np.argsort(G_sub)[:sample_actions]
+            avg_ep, avg_prag = 0, 0
+            for a in top_as:
+                q_sp = self.model.B[:, :, a] @ q_current
+                ep, pr = recursive_g(q_sp, d-1)  # Recurse only on promising
+                avg_ep += ep / sample_actions
+                avg_prag += pr / sample_actions
+            return avg_ep, avg_prag
+
         G = np.zeros(self.model.num_actions)
-        epistemics = np.zeros(self.model.num_actions)
-        pragmatics = np.zeros(self.model.num_actions)
         for a in range(self.model.num_actions):
             q_sp = self.model.B[:, :, a] @ self.q_s
-            epi, prag = recursive_g(q_sp, depth-1)
-            epistemics[a] = epi
-            pragmatics[a] = prag
-            G[a] = - (epi * epistemic_weight + prag)
+            # Compute local + future
+            q_op = self.model.A @ q_sp  # Predict obs
+            H_q_op = -np.sum(q_op * np.log(q_op + 1e-16))  # Overall ambiguity
+            H_p_o_s = -np.sum(self.model.A * np.log(self.model.A + 1e-16), axis=0)  # Per-state ambiguity
+            expected_H = q_sp @ H_p_o_s
+            local_ep = H_q_op - expected_H
+            local_prag = q_sp @ np.log(self.model.goal_prior + 1e-16)
+            future_ep, future_prag = recursive_g(q_sp, depth-1)
+            G[a] = - (local_ep + local_prag + future_ep + future_prag)
+        # Hybrid temp strategy: Start high (1.0) for exploration, decay to 0.3 for exploitation
+        temp = 1.0 * (1 - trial_num / 500) + 0.3  # Decay over 500 trials
         p_a = softmax(-G / temp)
         action = np.random.choice(self.model.num_actions, p=p_a)
-        self.q_s = self.model.B[:, :, action] @ self.q_s
+        self.q_s = self.model.B[:, :, action] @ self.q_s  # Update with selected action
         return action
 
     def update_parameters(self, prev_q_s, o_idx, a, next_q_s, learning_rate=0.1):

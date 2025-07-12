@@ -25,7 +25,7 @@ def run_simulation(num_trials=100, max_steps=500, grid_size=10):
             prev_q_s = agent.q_s.copy()
             agent.perceive(o_idx)
             trial_vfe += agent.vfe
-            a = agent.act(trial_num=t)
+            a = agent.act(trial)  # Pass trial for temp decay
             o_idx, reward, done = model.step(a)
             next_q_s = agent.q_s.copy()
             agent.update_parameters(prev_q_s, o_idx, a, next_q_s)
