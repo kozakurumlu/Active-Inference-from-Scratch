@@ -31,17 +31,27 @@ class ActiveInferenceAgent:
         kl = self.q_s @ (np.log(self.q_s + 1e-16) - np.log(prior_q + 1e-16))
         self.vfe = kl - evidence
 
-    def act(self):
+    def act(self, depth=2): 
+        def recursive_g(q_current, d):
+            if d == 0: return 0, 0  # Base
+            G = np.zeros(self.model.num_actions)
+            for a in range(self.model.num_actions):
+                q_sp = self.model.B[:, :, a] @ q_current
+                q_op = self.model.A @ q_sp
+                H_q_op = -np.sum(q_op * np.log(q_op + 1e-16))
+                H_p_o_s = -np.sum(self.model.A * np.log(self.model.A + 1e-16), axis=0)
+                expected_H = q_sp @ H_p_o_s
+                epistemic = H_q_op - expected_H
+                pragmatic = q_sp @ np.log(self.model.goal_prior + 1e-16)
+                future_ep, future_prag = recursive_g(q_sp, d-1)  # Recurse
+                G[a] = - (epistemic + future_ep + pragmatic + future_prag)
+            return np.mean(G) / self.model.num_actions, np.mean(G) / self.model.num_actions  # Avg for recursion
+        
         G = np.zeros(self.model.num_actions)
         for a in range(self.model.num_actions):
             q_sp = self.model.B[:, :, a] @ self.q_s
-            q_op = self.model.A @ q_sp
-            H_q_op = -np.sum(q_op * np.log(q_op + 1e-16))
-            H_p_o_s = -np.sum(self.model.A * np.log(self.model.A + 1e-16), axis=0)
-            expected_H = q_sp @ H_p_o_s
-            epistemic = H_q_op - expected_H
-            pragmatic = q_sp @ np.log(self.model.goal_prior + 1e-16)
-            G[a] = - (epistemic + pragmatic)
+            epi, prag = recursive_g(q_sp, depth-1)
+            G[a] = - (epi + prag)  # Simplified; add current terms if needed
         action = np.argmin(G)
         self.q_s = self.model.B[:, :, action] @ self.q_s
         return action
