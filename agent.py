@@ -32,7 +32,7 @@ class ActiveInferenceAgent:
         self.vfe = kl - evidence
 
     def act(self, trial_num, sample_actions=1):  # Depth=4 if VFE >4.0, else 2
-        depth = 4 if self.vfe > 4.0 else 2
+        depth = 3 if self.vfe > 4.0 else 2
 
         def recursive_g(q_current, d):
             if d == 0:
