@@ -31,7 +31,9 @@ class ActiveInferenceAgent:
         kl = self.q_s @ (np.log(self.q_s + 1e-16) - np.log(prior_q + 1e-16))
         self.vfe = kl - evidence
 
-    def act(self, trial_num, depth=3, sample_actions=1):  # Increased depth to 3 with full pruning (sample_actions=1)
+    def act(self, trial_num, sample_actions=1):  # Depth=4 if VFE >4.0, else 2
+        depth = 4 if self.vfe > 4.0 else 2
+
         def recursive_g(q_current, d):
             if d == 0:
                 return 0, 0  # No future epi/prag
@@ -71,8 +73,8 @@ class ActiveInferenceAgent:
             local_prag = q_sp @ np.log(self.model.goal_prior + 1e-16)
             future_ep, future_prag = recursive_g(q_sp, depth-1)
             G[a] = - (local_ep + local_prag + future_ep + future_prag)
-        # Hybrid temp strategy: Start high (1.0) for exploration, decay to 0.3 for exploitation
-        temp = 1.0 * (1 - trial_num / 500) + 0.3  # Decay over 500 trials
+        # Faster temp decay over 500 trials, hold high if VFE > 4.0
+        temp = 1.0 if self.vfe > 4.0 else (1.0 * (1 - trial_num / 500) + 0.3)
         p_a = softmax(-G / temp)
         action = np.random.choice(self.model.num_actions, p=p_a)
         self.q_s = self.model.B[:, :, action] @ self.q_s  # Update with selected action
