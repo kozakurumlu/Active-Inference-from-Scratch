@@ -31,10 +31,16 @@ class ActiveInferenceAgent:
         kl = self.q_s @ (np.log(self.q_s + 1e-16) - np.log(prior_q + 1e-16))
         self.vfe = kl - evidence
 
-    def act(self, depth=2): 
+    def act(self, trial_num, depth=2):
+        # Epistemic fade: 2.0 before 200, 1.0 after
+        epistemic_weight = 2.0 if trial_num < 200 else 1.0
+        # Temp decay: 1.0 to 0.1 over 500 trials
+        temp = 1.0 * (1 - trial_num / 500) + 0.1
         def recursive_g(q_current, d):
             if d == 0: return 0, 0  # Base
             G = np.zeros(self.model.num_actions)
+            epistemics = np.zeros(self.model.num_actions)
+            pragmatics = np.zeros(self.model.num_actions)
             for a in range(self.model.num_actions):
                 q_sp = self.model.B[:, :, a] @ q_current
                 q_op = self.model.A @ q_sp
@@ -44,15 +50,21 @@ class ActiveInferenceAgent:
                 epistemic = H_q_op - expected_H
                 pragmatic = q_sp @ np.log(self.model.goal_prior + 1e-16)
                 future_ep, future_prag = recursive_g(q_sp, d-1)  # Recurse
-                G[a] = - (epistemic + future_ep + pragmatic + future_prag)
-            return np.mean(G) / self.model.num_actions, np.mean(G) / self.model.num_actions  # Avg for recursion
-        
+                epistemics[a] = epistemic + future_ep
+                pragmatics[a] = pragmatic + future_prag
+                G[a] = - (epistemic * epistemic_weight + pragmatic)
+            return np.mean(epistemics), np.mean(pragmatics)
         G = np.zeros(self.model.num_actions)
+        epistemics = np.zeros(self.model.num_actions)
+        pragmatics = np.zeros(self.model.num_actions)
         for a in range(self.model.num_actions):
             q_sp = self.model.B[:, :, a] @ self.q_s
             epi, prag = recursive_g(q_sp, depth-1)
-            G[a] = - (epi + prag)  # Simplified; add current terms if needed
-        action = np.argmin(G)
+            epistemics[a] = epi
+            pragmatics[a] = prag
+            G[a] = - (epi * epistemic_weight + prag)
+        p_a = softmax(-G / temp)
+        action = np.random.choice(self.model.num_actions, p=p_a)
         self.q_s = self.model.B[:, :, action] @ self.q_s
         return action
 

@@ -25,7 +25,7 @@ def run_simulation(num_trials=100, max_steps=500, grid_size=10):
             prev_q_s = agent.q_s.copy()
             agent.perceive(o_idx)
             trial_vfe += agent.vfe
-            a = agent.act()
+            a = agent.act(trial_num=t)
             o_idx, reward, done = model.step(a)
             next_q_s = agent.q_s.copy()
             agent.update_parameters(prev_q_s, o_idx, a, next_q_s)
@@ -49,5 +49,9 @@ def run_simulation(num_trials=100, max_steps=500, grid_size=10):
     fig.legend(loc='upper left')
     plt.show()
 
+    # Print percentage of trials where agent got the reward
+    percent_reward = 100 * np.mean(rewards)
+    print(f"Agent received reward in {percent_reward:.1f}% of trials.")
+
 if __name__ == '__main__':
-    run_simulation(num_trials=100, max_steps=500, grid_size=5)
+    run_simulation(num_trials=500, max_steps=500, grid_size=5)
