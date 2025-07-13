@@ -10,7 +10,7 @@ from environment import GridWorldEnv
 from agent import ActiveInferenceAgent
 from rl_agent import QLearningAgent
 
-def run_simulation(num_trials=1000, max_steps=500, grid_size=5):
+def run_simulation(num_trials=500, max_steps=500, grid_size=5):
     # Shared env params
     model = GridWorldEnv(0, grid_size)  # AcI model
     rl_agent = QLearningAgent(model.num_obs, model.num_actions)  # RL persistent

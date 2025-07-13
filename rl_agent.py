@@ -11,11 +11,11 @@ class QLearningAgent:
         self.num_obs = num_obs
         self.num_actions = num_actions
         self.Q = np.zeros((num_obs, num_actions))  # Q-table
-        self.alpha = 0.1  # Learning rate
+        self.alpha = 0.2  # Optimized: Higher for faster learning in sparse rewards
         self.gamma = 0.99  # Discount
         self.epsilon = 1.0  # Initial explore
-        self.epsilon_min = 0.1
-        self.epsilon_decay = 0.995  # Decay per trial
+        self.epsilon_min = 0.05  # Optimized: Lower for better late exploitation
+        self.epsilon_decay = 0.999  # Optimized: Slower for prolonged exploration in uncertainty
 
     def act(self, o_idx):
         if np.random.rand() < self.epsilon:
