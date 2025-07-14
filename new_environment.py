@@ -6,7 +6,7 @@ def softmax(x):
     return e_x / e_x.sum(axis=0)
 
 class GridWorld:
-    def __init__(self, grid_size=3):
+    def __init__(self, grid_size=3, noise_level=0.1):
         self.grid_size = grid_size
         self.num_positions = grid_size * grid_size
         self.num_contexts = 2  # 0: Goal is Top-Right, 1: Goal is Bottom-Left
@@ -22,6 +22,7 @@ class GridWorld:
         self.true_context = 0
         self.agent_pos = 0
         self.true_state_idx = self._get_state_index(self.agent_pos, self.true_context)
+        self.noise_level = noise_level
         self._init_generative_model()
 
     def _get_state_index(self, pos, context):
@@ -33,7 +34,7 @@ class GridWorld:
         return pos, context
 
     def _init_generative_model(self):
-        # Fixed true likelihood for generating observations
+        # Fixed true likelihood for generating observations with parameterized noise
         self.true_A = np.zeros((self.num_obs, self.num_states))
         for s in range(self.num_states):
             pos, context = self._get_pos_and_context(s)
@@ -45,9 +46,9 @@ class GridWorld:
                     if pos == self.cue_pos or pos == self.goal_pos[context]:
                         cue_is_correct = (o_cue == context + 1)
                     if pos_is_correct and cue_is_correct:
-                        self.true_A[o_idx, s] = 0.9
+                        self.true_A[o_idx, s] = 1 - self.noise_level
                     else:
-                        self.true_A[o_idx, s] = 0.1 / (self.num_obs - 1)
+                        self.true_A[o_idx, s] = self.noise_level / (self.num_obs - 1)
         self.true_A /= np.sum(self.true_A, axis=0)
 
         # Agent's B, C, D (shared)
