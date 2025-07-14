@@ -5,7 +5,7 @@ from new_environment import GridWorld
 from new_agent import ActiveInferenceAgent
 from tqdm import tqdm
 
-def run_single_simulation(noise_level, num_trials=500, max_steps_per_trial=25):
+def run_single_simulation(noise_level, num_trials=500, max_steps_per_trial=50):
     env = GridWorld(grid_size=3, noise_level=noise_level)
     agent = ActiveInferenceAgent(env)
 
@@ -47,7 +47,7 @@ def run_single_simulation(noise_level, num_trials=500, max_steps_per_trial=25):
     return final_success_rate
 
 
-def run_experiment(noise_levels=[0.0, 0.1, 0.2, 0.3, 0.4]):
+def run_experiment(noise_levels=[0.1, 0.2, 0.3, 0.4, 0.5]):
     success_rates = []
     num_runs = 5
     num_trials = 500
