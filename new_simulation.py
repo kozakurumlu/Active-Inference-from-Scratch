@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from new_environment import GridWorld
 from new_agent import ActiveInferenceAgent
 
-def run_simulation(num_trials=1000, max_steps_per_trial=50):
+def run_simulation(num_trials=500, max_steps_per_trial=25):
     env = GridWorld(grid_size=3)
     agent = ActiveInferenceAgent(env)
 
@@ -22,7 +22,8 @@ def run_simulation(num_trials=1000, max_steps_per_trial=50):
         step_count = 0
 
         # Accuracy-based learning rate: higher when accuracy low, lower when high
-        current_lr = 0.1 * (1 - last_success_rate) + 0.01 * last_success_rate
+        power = 3  # or 3, or higher for sharper decay
+        current_lr = 0.1 * (1 - last_success_rate**power) + 0.01 * (last_success_rate**power)
 
         while not done and step_count < max_steps_per_trial:
             agent.infer_states(obs)
