@@ -24,7 +24,7 @@ def run_single_simulation(noise_level, agent_class, num_trials=500, max_steps_pe
 
         if agent_class == ActiveInferenceAgent:
             # Accuracy-based learning rate: higher when accuracy low, lower when high
-            power = 3  # or 3, or higher for sharper decay
+            power = 4  # or 3, or higher for sharper decay
             current_lr = 0.1 * (1 - last_success_rate**power) + 0.01 * (last_success_rate**power)
 
             while not done and step_count < max_steps_per_trial:
@@ -38,11 +38,12 @@ def run_single_simulation(noise_level, agent_class, num_trials=500, max_steps_pe
 
                 step_count += 1
         else:  # QLearningAgent
-            state = obs
+            state = agent.get_state()
             while not done and step_count < max_steps_per_trial:
                 action = agent.select_action(state)
                 next_obs, reward, done = env.step(action)
-                next_state = next_obs
+                agent.update_context(next_obs)
+                next_state = agent.get_state()
                 agent.update(state, action, reward, next_state, done)
                 state = next_state
 
@@ -61,7 +62,8 @@ def run_single_simulation(noise_level, agent_class, num_trials=500, max_steps_pe
     final_success_rate = np.mean(successful_trials)
     return final_success_rate
 
-def run_experiment(noise_levels=[0.1, 0.2, 0.3, 0.4, 0.5]):
+
+def run_experiment(noise_levels=[0.3, 0.4, 0.5, 0.6, 0.7]):
     success_rates_aci = []
     success_rates_rl = []
     num_runs = 5
