@@ -1,33 +1,43 @@
 import numpy as np
 
 class QLearningAgent:
-    def __init__(self, environment):
-        self.model = environment
-        self.num_actions = self.model.num_actions
-        self.num_positions = self.model.num_positions
-        self.num_cues = self.model.num_cues
-        self.num_states = self.num_positions * 3  # position * (unknown=0, context0=1, context1=2)
+    """Simple Q-learning agent for the T-Maze environment."""
+
+    def __init__(self, environment, alpha=0.1, gamma=0.95):
+        self.env = environment
+        self.num_actions = self.env.num_actions
+        self.num_positions = self.env.num_positions
+        self.num_cues = self.env.num_cues
+
+        # state = (position, context_estimate) with context_estimate \in {0,1,2}
+        self.num_states = self.num_positions * 3
         self.Q = np.zeros((self.num_states, self.num_actions))
-        self.alpha = 0.1  # Learning rate
-        self.gamma = 0.95  # Discount factor
-        self.epsilon_start = 0.5  # Starting exploration rate
-        self.epsilon_min = 0.01  # Minimum exploration rate
-        self.epsilon_decay = 0.995  # Decay per trial
+
+        self.alpha = alpha
+        self.gamma = gamma
+
+        self.epsilon_start = 0.5
+        self.epsilon_min = 0.01
+        self.epsilon_decay = 0.995
         self.epsilon = self.epsilon_start
-        self.known_context = 0  # 0: unknown, 1: context0, 2: context1
+
+        self.context_est = 0  # 0: unknown, 1: left, 2: right
+        # cue is always presented at position 1 in TMazeEnv
+        self.cue_pos = getattr(self.env, "cue_pos", 1)
 
     def reset(self):
-        self.known_context = 0  # Reset to unknown at start of each trial
+        """Reset internal state at the start of each trial."""
+        self.context_est = 0
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
 
     def get_state(self):
-        return self.model.agent_pos * 3 + self.known_context
+        return self.env.pos * 3 + self.context_est
 
     def update_context(self, obs):
         o_pos = obs // self.num_cues
         o_cue = obs % self.num_cues
-        if o_pos == self.model.cue_pos and o_cue in [1, 2]:
-            self.known_context = o_cue  # 1 for context0, 2 for context1
+        if o_pos == self.cue_pos and o_cue in (1, 2):
+            self.context_est = o_cue
 
     def select_action(self, state):
         if np.random.rand() < self.epsilon:
