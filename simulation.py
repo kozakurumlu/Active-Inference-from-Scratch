@@ -29,7 +29,7 @@ def run_experiment(noise_levels, num_trials=500):
 
 
 if __name__ == "__main__":
-    noise_levels = [0.1, 0.2, 0.3]
+    noise_levels = [0.1, 0.2, 0.3,0.4, 0.5]
     histories = run_experiment(noise_levels)
     x = np.arange(len(next(iter(histories.values()))))
     plt.figure(figsize=(8, 5))
