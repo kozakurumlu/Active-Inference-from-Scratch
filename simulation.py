@@ -7,7 +7,7 @@ from aci_agent import ActiveInferenceAgent
 from rl_agent import QLearningAgent
 
 
-def run_experiment(noise_levels, agent_cls, num_trials=500):
+def run_experiment(noise_levels, agent_cls, num_trials=1000):
     histories = {}
     for noise in noise_levels:
         env = TMazeEnv(noise_level=noise)
@@ -39,7 +39,7 @@ def run_experiment(noise_levels, agent_cls, num_trials=500):
 
 
 if __name__ == "__main__":
-    noise_levels = [0.3, 0.4, 0.5, 0.6, 0.7]
+    noise_levels = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
 
     # Active Inference agent
     ai_hist = run_experiment(noise_levels, ActiveInferenceAgent)
@@ -68,4 +68,3 @@ if __name__ == "__main__":
     plt.grid(True)
     plt.tight_layout()
     plt.show()
-
