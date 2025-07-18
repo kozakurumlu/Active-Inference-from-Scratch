@@ -1,6 +1,6 @@
 # Active Inference from Scratch
 
-This project contains a minimal implementation of active inference and reinforcement learning agents in a noisy T-maze environment. It is intended as a small demonstration showing how active inference can handle perceptual noise with less degradation in performance compared to a simple Q-learning agent.
+This project contains a minimal implementation of active inference and reinforcement learning agents in a noisy T-maze environment, using only NumPy and no external libraries for these agents. It is intended as a small demonstration and learning opportunity, showing how active inference can handle perceptual noise with less degradation in performance compared to a simple Q-learning agent.
 
 ## Overview
 
