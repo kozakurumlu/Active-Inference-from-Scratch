@@ -7,7 +7,7 @@ from aci_agent import ActiveInferenceAgent
 from rl_agent import QLearningAgent
 
 
-def run_experiment(noise_levels, agent_cls, env_cls, num_trials=500):
+def run_experiment(noise_levels, agent_cls, env_cls=TMazeEnv, num_trials=1000):
     acc = {}
     for noise in noise_levels:
         env = env_cls(noise_level=noise)
@@ -38,7 +38,7 @@ def run_experiment(noise_levels, agent_cls, env_cls, num_trials=500):
 
 
 if __name__ == "__main__":
-    noise_levels = [0.3, 0.4, 0.5, 0.6, 0.7]
+    noise_levels = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
 
     ai_acc = run_experiment(noise_levels, ActiveInferenceAgent, TMazeEnv)
     rl_acc = run_experiment(noise_levels, QLearningAgent, TMazeEnv)
@@ -60,4 +60,3 @@ if __name__ == "__main__":
     ai_drop = 100 * (ai_acc[base] - np.mean([ai_acc[n] for n in noise_levels[1:]])) / ai_acc[base]
     rl_drop = 100 * (rl_acc[base] - np.mean([rl_acc[n] for n in noise_levels[1:]])) / rl_acc[base]
     print(f"Average accuracy drop from noise {base}: AI {ai_drop:.1f}% | RL {rl_drop:.1f}%")
-
