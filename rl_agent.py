@@ -22,8 +22,6 @@ class QLearningAgent:
         self.epsilon = self.epsilon_start
 
         self.context_est = 0  # 0: unknown, 1: left, 2: right
-        # cue is always presented at position 1 in TMazeEnv
-        self.cue_pos = getattr(self.env, "cue_pos", 1)
 
     def reset(self):
         """Reset internal state at the start of each trial."""
@@ -34,9 +32,8 @@ class QLearningAgent:
         return self.env.pos * 3 + self.context_est
 
     def update_context(self, obs):
-        o_pos = obs // self.num_cues
         o_cue = obs % self.num_cues
-        if o_pos == self.cue_pos and o_cue in (1, 2):
+        if o_cue in (1, 2):
             self.context_est = o_cue
 
     def select_action(self, state):

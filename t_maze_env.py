@@ -114,3 +114,123 @@ class TMazeEnv:
                 B[self._state_index(next_pos, ctx), s, 2] = 1.0
         return B
 
+
+
+class ExtendedTMazeEnv(TMazeEnv):
+    """Extended T-maze with stochastic transitions and random cue position."""
+    def __init__(self, noise_level=0.1, max_steps=20, success_prob=0.8):
+        self.noise_level = noise_level
+        self.max_steps = max_steps
+        self.success_prob = success_prob
+        self.stay_prob = 0.1
+        self.slip_prob = 1.0 - self.success_prob - self.stay_prob
+
+        # positions: 0 start, 1 corridor1, 2 corridor2, 3 junction,
+        # 4 left corridor, 5 left goal, 6 right corridor, 7 right goal
+        self.num_positions = 8
+        self.num_contexts = 2
+        self.num_states = self.num_positions * self.num_contexts
+        self.num_cues = 3
+        self.num_obs = self.num_positions * self.num_cues
+        self.num_actions = 3  # 0-Up, 1-Left, 2-Right
+        self.adjacent = {
+            0: [1],
+            1: [0, 2],
+            2: [1, 3],
+            3: [2, 4, 6],
+            4: [3, 5],
+            5: [4],
+            6: [3, 7],
+            7: [6],
+        }
+        self.reset()
+
+    def _deterministic_step(self, pos, action):
+        if action == 0:  # Up
+            if pos in (0, 1, 2):
+                return pos + 1
+            if pos == 4:
+                return 5
+            if pos == 6:
+                return 7
+        elif action == 1:  # Left
+            if pos == 3:
+                return 4
+        elif action == 2:  # Right
+            if pos == 3:
+                return 6
+        return pos
+
+    def reset(self):
+        self.context = np.random.randint(self.num_contexts)
+        self.cue_pos = np.random.randint(1, 4)  # anywhere before or at junction
+        self.pos = 0
+        self.step_count = 0
+        return self._get_observation()
+
+    def step(self, action):
+        intended = self._deterministic_step(self.pos, action)
+        r = np.random.rand()
+        if r < self.success_prob:
+            new_pos = intended
+        elif r < self.success_prob + self.stay_prob:
+            new_pos = self.pos
+        else:
+            new_pos = np.random.choice(self.adjacent[self.pos])
+        self.pos = new_pos
+
+        self.step_count += 1
+        done = False
+        reward = -0.1
+        if self.pos in (5, 7):
+            done = True
+            if (self.context == 0 and self.pos == 5) or (
+                self.context == 1 and self.pos == 7
+            ):
+                reward = 1.0
+            else:
+                reward = -1.0
+        elif self.step_count >= self.max_steps:
+            done = True
+        obs = self._get_observation()
+        return obs, reward, done
+
+    def _get_observation(self):
+        if self.pos == self.cue_pos:
+            cue = self.context + 1
+        else:
+            cue = 0
+        true_obs = self.pos * self.num_cues + cue
+        if np.random.rand() > self.noise_level:
+            return true_obs
+        choices = list(range(self.num_obs))
+        choices.remove(true_obs)
+        return np.random.choice(choices)
+
+    def build_true_A(self):
+        A = np.zeros((self.num_obs, self.num_states))
+        for pos in range(self.num_positions):
+            for ctx in range(self.num_contexts):
+                s = self._state_index(pos, ctx)
+                for o in range(self.num_obs):
+                    cue = ctx + 1 if pos == self.cue_pos else 0
+                    true_o = pos * self.num_cues + cue
+                    if o == true_o:
+                        A[o, s] = 1 - self.noise_level
+                    else:
+                        A[o, s] = self.noise_level / (self.num_obs - 1)
+        return A
+
+    def build_B(self):
+        B = np.zeros((self.num_states, self.num_states, self.num_actions))
+        for pos in range(self.num_positions):
+            for ctx in range(self.num_contexts):
+                s = self._state_index(pos, ctx)
+                for a in range(self.num_actions):
+                    intended = self._deterministic_step(pos, a)
+                    B[self._state_index(intended, ctx), s, a] += self.success_prob
+                    B[self._state_index(pos, ctx), s, a] += self.stay_prob
+                    neigh = self.adjacent[pos]
+                    for n in neigh:
+                        B[self._state_index(n, ctx), s, a] += self.slip_prob / len(neigh)
+        return B
