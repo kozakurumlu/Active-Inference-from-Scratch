@@ -59,5 +59,5 @@ if __name__ == "__main__":
     base = noise_levels[0]
     ai_drop = 100 * (ai_acc[base] - np.mean([ai_acc[n] for n in noise_levels[1:]])) / ai_acc[base]
     rl_drop = 100 * (rl_acc[base] - np.mean([rl_acc[n] for n in noise_levels[1:]])) / rl_acc[base]
-    print(f"Average accuracy drop from noise {base}: AI {ai_drop:.1f}% | RL {rl_drop:.1f}%")
+    print(f"Average accuracy drop from noise {base}: AcI {ai_drop:.1f}% | RL {rl_drop:.1f}%")
 
