@@ -23,6 +23,8 @@ Drops 9.7 11.4
 
 Although the Q-learning agent often achieves slightly higher raw accuracy at low noise, its performance decreases more sharply as observations become less reliable.
 
+<img width="1181" height="731" alt="image" src="https://github.com/user-attachments/assets/b60f21b7-9e0a-4efd-8ce3-ae1984dab673" />
+
 ## Limitations and Future Work
 
 The current map is intentionally small to keep the example easy to understand. Because there are only a few states, the reinforcement learning agent can simply memorise state–action pairs after enough trials. To truly highlight the benefits of active inference, the environment should be extended with a larger maze or additional uncertainty (for example, the `ExtendedTMazeEnv` class already provides a stochastic version with more positions). A bigger map would prevent the Q-learning agent from memorising the optimal path so quickly and better illustrate how the active inference agent's generative model scales with complexity.
